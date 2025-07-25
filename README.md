@@ -28,5 +28,8 @@ cd quest-rt && racket build.rkt
 ### to test
 just run 
 ```bash
-LD_LIBRARY_PATH="./hquest/lib" cabal run hquest
+LD_LIBRARY_PATH="./hquest/lib" cabal run hquest -- data/example.qcis data/example.res
 ```
+where 
+- `data/example.qcis` is our input file, in `QCIS` format
+- `data/example.res` contains the resulting measurement bitstring, where each measurement is triggered by `QCIS` `M` gate.

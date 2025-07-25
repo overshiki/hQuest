@@ -3,6 +3,9 @@
 #include <complex.h>
 #include <time.h>
 #include <stdlib.h>
+#include <iostream>
+#include <fstream>
+#include <string>
 
 #ifdef SINGLETON 
   #define COMPILE_MPI 0
@@ -187,12 +190,14 @@ int measure(Qureg qureg, int target) {
 
 extern "C" {
 
-int prog(int numQubits, int prog_length, int* ps, double* ts) {
+
+int prog(int numQubits, int prog_length, int* ps, double* ts, int* measures) {
   initQuESTEnv();
-  reportQuESTEnv();
+  // reportQuESTEnv();
 
   Qureg qureg = createForcedQureg(numQubits);
   int theta_count = 0;
+  int measure_count = 0;
 
   for (int i=0; i<prog_length; i++) {
     int index = i * 3;
@@ -247,21 +252,13 @@ int prog(int numQubits, int prog_length, int* ps, double* ts) {
       case M:
         {
           int ret = measure(qureg, target);
+          measures[measure_count] = ret; 
+          measure_count += 1;
         }
       default:
         break;
     }
   }
-
-  reportQuregParams(qureg);
-
-  initRandomPureState(qureg);
-  reportQureg(qureg);
-
-  qreal prob = calcTotalProb(qureg);
-  
-  // if (getQuESTEnv().rank == 0)
-  //     std::cout << "Total probability: " << prob << std::endl;
 
   destroyQureg(qureg);
   finalizeQuESTEnv();
@@ -316,12 +313,50 @@ int test() {
 }
 
 int main(void) {
-  int const prog_length = 3;
+
+  // int const prog_length = 3;
+  // int ps[prog_length * 3] = {0, 1, 0, 0, 2, 0, 15, 1, 0};
+  // int numQubits = 3;
+
+  std::ifstream file; 
+  std::string content;
+  file.open("circuit.byte");
+  // std::cout << "open the file" << "\n";
+  file >> content; 
+  int const prog_length = std::stoi( content );
+  file >> content;
+  int numQubits = std::stoi( content );
+  file >> content;
+  int const num_measure = std::stoi( content );
   // gt, target, target2, gt, target ...
-  int ps[prog_length * 3] = {0, 1, 0, 0, 2, 0, 15, 1, 0};
-  int numQubits = 3;
+  int ps[prog_length * 3];
+  int measures[num_measure];
+  std::cout << "prog_length: " << prog_length << "\n";
+  std::cout << "numQubits: " << numQubits << "\n";
+  std::cout << "num_measure: " << num_measure << "\n";
+
+  int count = 0;
+  while ( file ) {                // always check whether the file is open
+    file >> content;              // pipe file's content into stream
+    ps[count] = std::stoi( content );
+    // std::cout << ps[count] << "\n"; // pipe stream's content to standard output
+    count += 1;
+  }
+  file.close();
+
   double ts[1] = {0.0};
-  prog(numQubits, prog_length, ps, ts);
+  prog(numQubits, prog_length, ps, ts, measures);
+
+  std::ofstream ofile;
+  ofile.open("measure.byte");
+
+  for (int i=0; i<num_measure; i++){
+    std::cout << "measure: " << measures[i] << "\n";
+    content = std::to_string(measures[i]);
+    ofile << content;
+  }
+  ofile.close();
+
   printf("main prog done");
 }
 

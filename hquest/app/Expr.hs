@@ -1,5 +1,6 @@
 {-# LANGUAGE TypeFamilies #-}
 module Expr where
+import qualified Data.List as L
 
 class HasEncode a where
   type En a
@@ -42,7 +43,10 @@ instance HasEncode GateTy where
 
 
 newtype Q = Q Int
-  deriving (Show)
+  deriving (Eq, Show)
+
+q2int :: Q -> Int 
+q2int (Q i) = i
 
 instance HasEncode Q where
   type En Q = Int
@@ -68,3 +72,22 @@ instance HasEncode Circuit where
 collectThetas :: Circuit -> [Double]
 collectThetas (Circuit ((Gate _ _ ds):gs)) = ds ++ collectThetas (Circuit gs)
 collectThetas (Circuit []) = []
+
+collectQubits :: Circuit -> [Q]
+collectQubits (Circuit ((Gate _ qs _):gs)) = L.nub $ qs ++ collectQubits (Circuit gs)
+collectQubits (Circuit []) = []
+
+numQubits :: Circuit -> Int 
+numQubits c = L.maximum qs + 1
+  where 
+    qs = map q2int $ collectQubits c
+
+
+numMeasures_ :: Int -> Circuit -> Int 
+numMeasures_ count (Circuit ((Gate gt _ _):gs)) = case gt of 
+  M -> numMeasures_ (count + 1) (Circuit gs)
+  _ -> numMeasures_ count (Circuit gs)
+numMeasures_ count (Circuit []) = count
+
+numMeasures :: Circuit -> Int 
+numMeasures = numMeasures_ 0
