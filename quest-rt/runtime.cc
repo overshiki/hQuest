@@ -203,60 +203,49 @@ int prog(int numQubits, int prog_length, int* ps, double* ts, int* measures) {
     int index = i * 3;
     GTy gt = static_cast<GTy>(ps[index]);
     int target = ps[index + 1];
-    switch (gt) {
-      case X:
-        xgate(qureg, target);
-      case Y:
-        ygate(qureg, target);
-      case X2P:
-        x2pgate(qureg, target);
-      case X2M:
-        x2mgate(qureg, target);
-      case Y2P:
-        y2pgate(qureg, target);
-      case Y2M:
-        y2mgate(qureg, target);
-      case Z:
-        zgate(qureg, target);
-      case S:
-        sgate(qureg, target);
-      case SD:
-        sdgate(qureg, target);
-      case T:
-        tgate(qureg, target);
-      case TD:
-        tdgate(qureg, target);
-      case XY:
-        {
-          double theta = ts[theta_count];
-          xygate(qureg, target, theta);
-          theta_count += 1;
-        }
-      case XY2P:
-        {
-          double theta = ts[theta_count];
-          xy2pgate(qureg, target, theta);
-          theta_count += 1;
-        }
-      case XY2M:
-        {
-          double theta = ts[theta_count];
-          xy2mgate(qureg, target, theta);
-          theta_count += 1;
-        }
-      case CZ:
-        {
-          int target2 = ps[index+2];
-          czgate(qureg, target, target2);
-        }
-      case M:
-        {
-          int ret = measure(qureg, target);
-          measures[measure_count] = ret; 
-          measure_count += 1;
-        }
-      default:
-        break;
+    if (gt == X) {
+      xgate(qureg, target);
+    } else if (gt == Y) {
+      ygate(qureg, target);
+    } else if (gt == X2P) {
+      x2pgate(qureg, target);
+    } else if (gt == X2M) {
+      x2mgate(qureg, target);
+    } else if (gt == Y2P) {
+      y2pgate(qureg, target);
+    } else if (gt == Y2M) {
+      y2mgate(qureg, target);
+    } else if (gt == Z) {
+      zgate(qureg, target);
+    } else if (gt == S) {
+      sgate(qureg, target);
+    } else if (gt == SD) {
+      sdgate(qureg, target);
+    } else if (gt == T) {
+      tgate(qureg, target);
+    } else if (gt == TD) {
+      tdgate(qureg, target);
+    } else if (gt == XY) {
+      double theta = ts[theta_count];
+      xygate(qureg, target, theta);
+      theta_count += 1;
+    } else if (gt == XY2P) {
+      double theta = ts[theta_count];
+      xy2pgate(qureg, target, theta);
+      theta_count += 1;
+    } else if (gt == XY2M) {
+      double theta = ts[theta_count];
+      xy2mgate(qureg, target, theta);
+      theta_count += 1;
+    } else if (gt == CZ) {
+      int target2 = ps[index+2];
+      czgate(qureg, target, target2);
+    } else if (gt == M) {
+      int ret = measure(qureg, target);
+      measures[measure_count] = ret; 
+      measure_count += 1;
+    } else {
+      std::cout << "error\n";
     }
   }
 
