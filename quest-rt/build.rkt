@@ -63,6 +63,10 @@
       "-o libqrun.so"
     )
   )
+  (if (directory-exists? "../hquest/lib")
+    '()
+    (system "mkdir -p ../hquest/lib")
+  )
   (system "cp build/libQuEST.so ../hquest/lib/")
   (system "cp build/libqrun.so ../hquest/lib/")
   ;;; (system "LD_LIBRARY_PATH=\"./build\" && ./build/runtime")
