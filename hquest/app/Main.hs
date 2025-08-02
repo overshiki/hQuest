@@ -10,12 +10,16 @@ import Foreign.Ptr
 import Foreign
 import System.Environment (getArgs)
 
-foreign import ccall "test"
-  test :: IO ()
+-- foreign import ccall "test"
+--   test :: IO ()
 
 foreign import ccall "prog"
   -- numQubits, prog_length, ps, ts
   prog :: CInt -> CInt -> Ptr CInt -> Ptr CDouble -> Ptr CInt -> IO ()
+
+foreign import ccall "dmProg"
+  -- numQubits, prog_length, ps, ts
+  dmProg :: CInt -> CInt -> Ptr CInt -> Ptr CDouble -> Ptr CInt -> IO ()
 
 int2cint :: Int -> CInt
 int2cint = CInt . fromIntegral
@@ -43,7 +47,9 @@ runCircuit c@(Circuit gs) = do
   let 
     nqubit = int2cint $ numQubits c
     progLength = int2cint (length gs)
-  prog nqubit progLength psPtr tsPtr nsPtr
+  if (isDensityMatrix c) 
+    then dmProg nqubit progLength psPtr tsPtr nsPtr
+    else prog nqubit progLength psPtr tsPtr nsPtr
   ms <- peekArray nMeasures nsPtr
   -- print ms
   return $ map (\(CInt i) -> fromIntegral i) ms

@@ -3,3 +3,5 @@ hquest/dist-newstyle
 hquest/lib/libqrun.so
 hquest/lib/libQuEST.so
 quest-rt/build
+.vscode
+hquest/lib

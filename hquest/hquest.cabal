@@ -82,6 +82,7 @@ executable hquest
 
     extra-libraries:
         qrun
+        , qrunDM
         , QuEST
     extra-lib-dirs:
         lib

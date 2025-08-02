@@ -14,7 +14,7 @@ data GateTy =
   | X2P | X2M
   | Y2P | Y2M
   | XY
-  | X | Y | Z | M
+  | X | Y | Z | M | Kraus
   deriving (Show, Eq, Ord, Bounded, Enum)
 
 -- property of dataclass Enum from GHC.Enum
@@ -40,6 +40,7 @@ instance HasEncode GateTy where
     XY2M -> 13
     CZ   -> 14
     M    -> 15
+    Kraus -> 16
 
 
 newtype Q = Q Int
@@ -91,3 +92,8 @@ numMeasures_ count (Circuit []) = count
 
 numMeasures :: Circuit -> Int 
 numMeasures = numMeasures_ 0
+
+isDensityMatrix :: Circuit -> Bool 
+isDensityMatrix (Circuit ((Gate Kraus _ _):_)) = True 
+isDensityMatrix (Circuit (_:gs)) = isDensityMatrix (Circuit gs)
+isDensityMatrix (Circuit []) = False
