@@ -21,7 +21,7 @@
 
 extern "C" {
 
-int dmProg(int numQubits, int prog_length, int* ps, double* ts, int* measures) {
+int dmProg(int numQubits, int prog_length, int* ps, double* ts, int* measures, qreal* krausVec) {
   initQuESTEnv();
   // reportQuESTEnv();
 
@@ -75,7 +75,7 @@ int dmProg(int numQubits, int prog_length, int* ps, double* ts, int* measures) {
       measures[measure_count] = ret; 
       measure_count += 1;
     } else if (gt == Kraus) {
-      kraus(qureg, target);
+      kraus(qureg, target, 1, 1, krausVec);
     } else {
       std::cout << "error\n";
     }
