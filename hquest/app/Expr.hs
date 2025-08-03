@@ -63,12 +63,12 @@ newtype Complex = Complex (Float, Float)
 data KrausOp = KrausOp Int [[Complex]] 
   deriving (Eq, Show)
 
-data Gate = Gate GateTy [Q] [Double]
+data Gate = Gate GateTy [Q] [Double] [String]
   deriving (Show)
 
 instance HasEncode Gate where
   type En Gate = [Int]
-  encoding (Gate gt qs _) = case qs of
+  encoding (Gate gt qs _ _) = case qs of
     [x]    -> [encoding gt, encoding x, 0]
     [x, y] -> [encoding gt, encoding x, encoding y]
     _ -> error "value error"
@@ -81,11 +81,11 @@ instance HasEncode Circuit where
   encoding (Circuit gs) = concatMap encoding gs
 
 collectThetas :: Circuit -> [Double]
-collectThetas (Circuit ((Gate _ _ ds):gs)) = ds ++ collectThetas (Circuit gs)
+collectThetas (Circuit ((Gate _ _ ds _):gs)) = ds ++ collectThetas (Circuit gs)
 collectThetas (Circuit []) = []
 
 collectQubits :: Circuit -> [Q]
-collectQubits (Circuit ((Gate _ qs _):gs)) = L.nub $ qs ++ collectQubits (Circuit gs)
+collectQubits (Circuit ((Gate _ qs _ _):gs)) = L.nub $ qs ++ collectQubits (Circuit gs)
 collectQubits (Circuit []) = []
 
 numQubits :: Circuit -> Int 
@@ -95,7 +95,7 @@ numQubits c = L.maximum qs + 1
 
 
 numMeasures_ :: Int -> Circuit -> Int 
-numMeasures_ count (Circuit ((Gate gt _ _):gs)) = case gt of 
+numMeasures_ count (Circuit ((Gate gt _ _ _):gs)) = case gt of 
   M -> numMeasures_ (count + 1) (Circuit gs)
   _ -> numMeasures_ count (Circuit gs)
 numMeasures_ count (Circuit []) = count
@@ -104,6 +104,6 @@ numMeasures :: Circuit -> Int
 numMeasures = numMeasures_ 0
 
 isDensityMatrix :: Circuit -> Bool 
-isDensityMatrix (Circuit ((Gate Kraus _ _):_)) = True 
+isDensityMatrix (Circuit ((Gate Kraus _ _ _):_)) = True 
 isDensityMatrix (Circuit (_:gs)) = isDensityMatrix (Circuit gs)
 isDensityMatrix (Circuit []) = False

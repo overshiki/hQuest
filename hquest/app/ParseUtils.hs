@@ -47,10 +47,10 @@ safeManyTill p end = go
 manyBetween :: Parser a -> Parser a -> Parser String
 manyBetween s e = s *> safeManyTill L.charLiteral e
 
-run :: HasCallStack => Parser a -> String -> a
+run :: HasCallStack => Parser a -> String -> (a, Env)
 run p s = case v of
   Left bundle -> error (errorBundlePretty bundle)
-  Right r -> r
+  Right r -> (r, env)
   where
     m = runParserT p "" s
     (v, env) = runState m HS.empty

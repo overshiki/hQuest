@@ -1,9 +1,10 @@
 {-# LANGUAGE ForeignFunctionInterface #-}
+{-# OPTIONS_GHC -Wno-unused-do-bind #-}
 module Main where
-import Expr 
-import Parse 
+import Expr
+import Parse
 import ParseUtils
-
+import qualified Data.HashMap.Strict as HS
 import Foreign.C.Types
 -- import Foreign.StablePtr
 import Foreign.Ptr
@@ -36,18 +37,18 @@ int2cint = CInt . fromIntegral
 --   prog nqubit progLength psPtr tsPtr
 
 runCircuit :: Circuit -> IO [Int]
-runCircuit c@(Circuit gs) = do 
-  let 
+runCircuit c@(Circuit gs) = do
+  let
     ps = encoding c
     ts = collectThetas c
     nMeasures = numMeasures c
-  psPtr <- newArray $ map int2cint ps 
+  psPtr <- newArray $ map int2cint ps
   tsPtr <- newArray $ map CDouble ts
-  nsPtr <- newArray $ map int2cint (take nMeasures $ repeat (-1))
-  let 
+  nsPtr <- newArray $ replicate nMeasures (int2cint (-1))
+  let
     nqubit = int2cint $ numQubits c
     progLength = int2cint (length gs)
-  if (isDensityMatrix c) 
+  if isDensityMatrix c
     then dmProg nqubit progLength psPtr tsPtr nsPtr
     else prog nqubit progLength psPtr tsPtr nsPtr
   ms <- peekArray nMeasures nsPtr
@@ -58,9 +59,9 @@ testProg :: IO ()
 testProg = do
   let file = "data/example.qcis"
   s <- readFile file
-  let circ = run parseCircuit ("!!!Start " ++ s) 
+  let (circ, env) = run parseCircuit ("!!!Start " ++ s)
   print circ
-  runCircuit circ 
+  runCircuit circ
   return ()
 
 main :: IO ()
@@ -68,9 +69,10 @@ main = do
   -- let file = "data/example.qcis"
   file:ofile:_ <- getArgs
   s <- readFile file
-  let circ = run parseCircuit ("!!!Start " ++ s) 
+  let (circ, env) = run parseCircuit ("!!!Start " ++ s)
   print circ
+  print $ HS.toList env
   ms <- runCircuit circ
-  let 
-    res = foldl ( ++ ) "" $ map show ms 
-  writeFile ofile res 
+  let
+    res = concatMap show ms
+  writeFile ofile res

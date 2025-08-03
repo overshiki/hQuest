@@ -39,23 +39,23 @@ parseGateHd =
   try (Gty <$> parseGateTy)
   <|> (lstring "defkraus" >> return DefKraus)
 
-data Ind = PI Int | PF Float 
+data Ind = PI Int | PF Float
   deriving (Eq, Show)
 
-parseInd :: Parser Ind 
+parseInd :: Parser Ind
 parseInd = try (PF <$> parseFloat)
   <|> (PI <$> parseInt)
 
-forceParseFloat :: Parser Float 
-forceParseFloat = do 
+forceParseFloat :: Parser Float
+forceParseFloat = do
   d <- parseInd
-  case d of 
-    PF f -> return f 
+  case d of
+    PF f -> return f
     PI i -> return $ fromIntegral i
 
-parseComplex :: Parser Complex 
-parseComplex = do 
-  r <- forceParseFloat 
+parseComplex :: Parser Complex
+parseComplex = do
+  r <- forceParseFloat
   lstring "+"
   i <- forceParseFloat
   lstring "j"
@@ -64,17 +64,23 @@ parseComplex = do
 parseComplexMatrix :: Int -> Parser [[Complex]]
 parseComplexMatrix n = parseMatrix n parseComplex
 
-parseKrausOp :: Parser () 
-parseKrausOp = do 
-  v <- parseVar
+parseKrausName :: Parser String 
+parseKrausName = do 
+  lstring "K"
+  v <- parseVar 
+  return $ "K" ++ v
+
+parseKrausOp :: Parser ()
+parseKrausOp = do
+  v <- parseKrausName
   dn <- parseInt
   lstring "x"
   dn' <- parseInt
-  if dn /= dn' 
+  if dn /= dn'
     then error "value error"
-    else do 
+    else do
       ds <- parseComplexMatrix dn
-      let kops = KrausOp dn ds 
+      let kops = KrausOp dn ds
       env <- get
       let nenv = HS.insert v kops env
       put nenv
@@ -82,19 +88,26 @@ parseKrausOp = do
 
 parseGate :: Parser (Maybe Gate)
 parseGate = do
-  -- gty <- parseGateTy
   ghd <- parseGateHd
   case ghd of
+    Gty Kraus -> do
+      qs <- parseExhaust parseQ
+      ks <- parseExhaust parseKrausName
+      env <- get
+      let check = all (`elem` HS.keys env) ks
+      if check
+        then return $ Just $ Gate Kraus qs [] ks
+        else error "kraus name not fount in env"
     Gty gty -> do
       qs <- parseExhaust parseQ
       ts <- parseExhaust parseDouble
-      return $ Just $ Gate gty qs ts
-    DefKraus -> 
+      return $ Just $ Gate gty qs ts []
+    DefKraus ->
       parseKrausOp >> return Nothing
 
 parseStart :: Parser ()
 parseStart = void (lstring "!!!Start")
 
 parseCircuit :: Parser Circuit
-parseCircuit = parseStart >> 
+parseCircuit = parseStart >>
   (Circuit . catMaybes <$> safeManyTill parseGate eof)

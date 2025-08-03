@@ -3,7 +3,7 @@ Y Q02
 XY Q02 0.5
 XY Q03 0.5
 defkraus K1 2x2 [[1+2j, 1.0+2j], [0.0+1j, 1.0+0j]] 
-Kraus Q01
+Kraus Q01 K1
 M Q02
 M Q01
 M Q03
