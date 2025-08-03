@@ -42,6 +42,9 @@ instance HasEncode GateTy where
     M    -> 15
     Kraus -> 16
 
+data GateHd = Gty GateTy
+  | DefKraus
+  deriving (Eq, Show)
 
 newtype Q = Q Int
   deriving (Eq, Show)
@@ -52,6 +55,13 @@ q2int (Q i) = i
 instance HasEncode Q where
   type En Q = Int
   encoding (Q i) = i
+
+newtype Complex = Complex (Float, Float)
+  deriving (Eq, Show)
+
+-- KrausOp ndim data
+data KrausOp = KrausOp Int [[Complex]] 
+  deriving (Eq, Show)
 
 data Gate = Gate GateTy [Q] [Double]
   deriving (Show)

@@ -9,12 +9,15 @@ import Data.List
 import Text.Megaparsec hiding (State)
 import Text.Megaparsec.Char
 import qualified Text.Megaparsec.Char.Lexer as L
+import Data.Maybe
+import qualified Data.HashMap.Strict as HS
+import Control.Monad.State.Lazy
 
 parseExhaust :: Parser a -> Parser [a]
 parseExhaust parseElm = safeManyTill parseElm (notFollowedBy parseElm)
 
 parseQ :: Parser Q
-parseQ = do 
+parseQ = do
   lstring "Q"
   Q <$> parseInt
 
@@ -31,18 +34,67 @@ parseEnum [] = error "value error"
 parseGateTy :: Parser GateTy
 parseGateTy = parseEnum gateTyList
 
-parseGate :: Parser Gate
+parseGateHd :: Parser GateHd
+parseGateHd =
+  try (Gty <$> parseGateTy)
+  <|> (lstring "defkraus" >> return DefKraus)
+
+data Ind = PI Int | PF Float 
+  deriving (Eq, Show)
+
+parseInd :: Parser Ind 
+parseInd = try (PF <$> parseFloat)
+  <|> (PI <$> parseInt)
+
+forceParseFloat :: Parser Float 
+forceParseFloat = do 
+  d <- parseInd
+  case d of 
+    PF f -> return f 
+    PI i -> return $ fromIntegral i
+
+parseComplex :: Parser Complex 
+parseComplex = do 
+  r <- forceParseFloat 
+  lstring "+"
+  i <- forceParseFloat
+  lstring "j"
+  return $ Complex (r, i)
+
+parseComplexMatrix :: Int -> Parser [[Complex]]
+parseComplexMatrix n = parseMatrix n parseComplex
+
+parseKrausOp :: Parser () 
+parseKrausOp = do 
+  v <- parseVar
+  dn <- parseInt
+  lstring "x"
+  dn' <- parseInt
+  if dn /= dn' 
+    then error "value error"
+    else do 
+      ds <- parseComplexMatrix dn
+      let kops = KrausOp dn ds 
+      env <- get
+      let nenv = HS.insert v kops env
+      put nenv
+      return ()
+
+parseGate :: Parser (Maybe Gate)
 parseGate = do
-  gty <- parseGateTy
-  -- qs <- safeManyTill parseQ preparseNext
-  qs <- parseExhaust parseQ
-  ts <- parseExhaust parseDouble
-  return $ Gate gty qs ts
+  -- gty <- parseGateTy
+  ghd <- parseGateHd
+  case ghd of
+    Gty gty -> do
+      qs <- parseExhaust parseQ
+      ts <- parseExhaust parseDouble
+      return $ Just $ Gate gty qs ts
+    DefKraus -> 
+      parseKrausOp >> return Nothing
 
 parseStart :: Parser ()
-parseStart = void (lstring "!!!Start") 
+parseStart = void (lstring "!!!Start")
 
-parseCircuit :: Parser Circuit 
-parseCircuit = parseStart >>
-  (Circuit <$> safeManyTill parseGate eof)
-  
+parseCircuit :: Parser Circuit
+parseCircuit = parseStart >> 
+  (Circuit . catMaybes <$> safeManyTill parseGate eof)
