@@ -7,7 +7,7 @@
   dbase
 )
 
-(define (compile path file target)
+(define (compile path file target is-builtin)
   (define (sys command)
     (display command)
     (display "\n")
@@ -106,13 +106,13 @@
     )
   )
 
-  ; (builtin)
+  (if is-builtin
+    (builtin)
+    '()
+  )
   (singleton)
   ; (excutable)
 )
-
-; (define path "runtime.cc")
-; (define file "runtime.cc")
 
 (let 
   (
@@ -120,7 +120,7 @@
     (file "density_matrix_runtime.cc")
     (target "libqrunDM.so")
   )
-  (compile path file target)
+  (compile path file target #t)
 )
 
 (let 
@@ -129,5 +129,5 @@
     (file "runtime.cc")
     (target "libqrun.so")
   )
-  (compile path file target)
+  (compile path file target #f)
 )
