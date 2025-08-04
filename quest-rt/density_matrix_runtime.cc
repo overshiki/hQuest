@@ -21,7 +21,7 @@
 
 extern "C" {
 
-int dmProg(int numQubits, int prog_length, int* ps, double* ts, int* measures, int* channelIndices, double* krausVec) {
+int dmProg(int numQubits, int prog_length, int* ps, double* ts, int* measures, int* dims, int* channelIndicesQ1, int* channelIndicesQ2, double* krausVec) {
   initQuESTEnv();
   // reportQuESTEnv();
 
@@ -75,11 +75,17 @@ int dmProg(int numQubits, int prog_length, int* ps, double* ts, int* measures, i
       measures[measure_count] = ret; 
       measure_count += 1;
     } else if (gt == Kraus) {
+      int target2 = ps[index+2];
       int offsetL = ps[index+3];
       int offsetR = ps[index+4];
-      int nQb = 1;
+      if (target2 == -1) {
+        int nQb = 1;
+        kraus(qureg, target, target2, nQb, dims, channelIndicesQ1, offsetL, offsetR, krausVec);
+      } else {
+        int nQb = 2;
+        kraus(qureg, target, target2, nQb, dims, channelIndicesQ2, offsetL, offsetR, krausVec);
+      }
       // std::cout << "kraus";
-      kraus(qureg, target, nQb, channelIndices, offsetL, offsetR, krausVec);
     } else {
       std::cout << "error\n";
     }

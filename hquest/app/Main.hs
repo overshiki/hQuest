@@ -16,13 +16,26 @@ import System.Environment (getArgs)
 --   test :: IO ()
 
 foreign import ccall "prog"
-  -- numQubits, prog_length, ps, ts
-  prog :: CInt -> CInt -> Ptr CInt -> Ptr CDouble -> Ptr CInt -> IO ()
+  prog :: 
+    CInt              -- int numQubits
+    -> CInt           -- int prog_length
+    -> Ptr CInt       -- int* ps
+    -> Ptr CDouble    -- double* ts
+    -> Ptr CInt       -- int* measures
+    -> IO ()
 
 foreign import ccall "dmProg"
-  -- numQubits, prog_length, ps, ts, channelIndices, krausVec
-  dmProg :: CInt -> CInt -> Ptr CInt 
-    -> Ptr CDouble -> Ptr CInt -> Ptr CInt -> Ptr CDouble -> IO ()
+  dmProg :: 
+    CInt              -- int numQubits
+    -> CInt           -- int prog_length 
+    -> Ptr CInt       -- int* ps
+    -> Ptr CDouble    -- double* ts
+    -> Ptr CInt       -- int* measures
+    -> Ptr CInt       -- int* dims
+    -> Ptr CInt       -- int* channelIndicesQ1
+    -> Ptr CInt       -- int* channelIndicesQ2
+    -> Ptr CDouble    -- double* krausVec
+    -> IO ()
 
 int2cint :: Int -> CInt
 int2cint = CInt . fromIntegral
@@ -42,20 +55,22 @@ runCircuit :: Circuit -> Env -> IO [Int]
 runCircuit c@(Circuit gs) env = do
   let
     indexedEnv = getIndexedEnv env
-    ks = flattenEnv (env, indexedEnv)
-    (ps, (_, _, channelIndices)) = runState (encoding c) (env, indexedEnv, [])
+    (ks, dims) = flattenEnv (env, indexedEnv)
+    (ps, (_, _, channelIndices1q, channelIndices2q)) = runState (encoding c) (env, indexedEnv, [], [])
     ts = collectThetas c
     nMeasures = numMeasures c
   psPtr <- newArray $ map int2cint ps
   tsPtr <- newArray $ map CDouble ts
   nsPtr <- newArray $ replicate nMeasures (int2cint (-1))
-  chPtr <- newArray $ map int2cint channelIndices
+  dimsPtr <- newArray $ map int2cint dims
+  ch1qPtr <- newArray $ map int2cint channelIndices1q
+  ch2qPtr <- newArray $ map int2cint channelIndices2q
   ksPtr <- newArray $ map CDouble ks
   let
     nqubit = int2cint $ numQubits c
     progLength = int2cint (length gs)
   if isDensityMatrix c
-    then dmProg nqubit progLength psPtr tsPtr nsPtr chPtr ksPtr
+    then dmProg nqubit progLength psPtr tsPtr nsPtr dimsPtr ch1qPtr ch2qPtr ksPtr
     else prog nqubit progLength psPtr tsPtr nsPtr
   ms <- peekArray nMeasures nsPtr
   -- print ms

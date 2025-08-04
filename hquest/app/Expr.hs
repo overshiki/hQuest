@@ -16,21 +16,25 @@ getIndexedEnv d = HS.fromList (zip ks [0 .. ])
   where 
     ks = L.sort $ HS.keys d
 
-flattenEnv :: (Env, IndexedEnv) -> [Double]
-flattenEnv (env, indexenv) = vs
+-- (flattenArray, dimArray)
+flattenEnv :: (Env, IndexedEnv) -> ([Double], [Int])
+flattenEnv (env, indexenv) = (vs, dims)
   where 
     revIndexedEnv = HS.fromList $ map (\(s, i) -> (i, s)) $ HS.toList indexenv
     nKraus = L.length $ HS.keys revIndexedEnv
-    vs = concatMap 
+    vds = map 
       (\i -> 
         let s = fromJust $ HS.lookup i revIndexedEnv in 
-        let (KrausOp _ ds) = fromJust $ HS.lookup s env in
-        concatMap (\(Complex (x, y)) -> [x, y]) $ concat ds
+        let (KrausOp dim ds) = fromJust $ HS.lookup s env in
+        let vsMini = concatMap (\(Complex (x, y)) -> [x, y]) $ concat ds in 
+        (vsMini, dim)
       ) 
-      $ [0 .. nKraus - 1]
+      [0 .. nKraus - 1]
+    (vs_, dims) = unzip vds    
+    vs = concat vs_
 
--- [Int] represents the second jump table for kraus operators
-type EnvState = State (Env, IndexedEnv, [Int])
+-- Env, IndexedEnv, jump indices for 1q kraus, jump indices for 2q kraus
+type EnvState = State (Env, IndexedEnv, [Int], [Int])
 
 class HasEncode a where
   type En a
@@ -96,11 +100,6 @@ data KrausOp = KrausOp Int [[Complex]]
 data Gate = Gate GateTy [Q] [Double] [String]
   deriving (Show)
 
-defaultEncode :: Int -> Int 
-defaultEncode exclude = if exclude == 0 
-  then 1 
-  else exclude - 1
-
 instance HasEncode Gate where
   type En Gate = [Int]
   encoding (Gate Kraus qs _ ps) = case qs of 
@@ -109,44 +108,45 @@ instance HasEncode Gate where
     -- currently only support one-qubit operation
     -- TODO: support multi-qubits operation
     [x] -> do
-      (env, indexenv, indices) <- get
+      (env, indexenv, indices1q, indices2q) <- get
       let 
         channelIndices = map (\p -> fromJust $ HS.lookup p indexenv) ps
-        offsetL = L.length indices
-        nindices = indices ++ channelIndices
-        offsetR = L.length nindices
-        -- offsetR = unsafePerformIO (do 
-        --   { print "offsetL: "
-        --   ; print offsetL
-        --   ; print "offsetR: "
-        --   ; print offsetR'
-        --   ; print "indices: "
-        --   ; print indices
-        --   ; print "nindices: "
-        --   ; print nindices
-        --   ; print "channelIndices: "
-        --   ; print channelIndices
-        --   ; return offsetR'})
+        offsetL = L.length indices1q
+        nindices1q = indices1q ++ channelIndices
+        offsetR = L.length nindices1q
 
-      put (env, indexenv, nindices)
+      put (env, indexenv, nindices1q, indices2q)
 
       engt <- encoding Kraus 
       enx  <- encoding x 
-      return [engt, enx, defaultEncode enx, offsetL, offsetR]
+      return [engt, enx, -1, offsetL, offsetR]
+
+    [x, y] -> do
+      (env, indexenv, indices1q, indices2q) <- get
+      let 
+        channelIndices = map (\p -> fromJust $ HS.lookup p indexenv) ps
+        offsetL = L.length indices2q
+        nindices2q = indices2q ++ channelIndices
+        offsetR = L.length nindices2q
+
+      put (env, indexenv, indices1q, nindices2q)
+
+      engt <- encoding Kraus 
+      enx  <- encoding x
+      eny  <- encoding y
+      return [engt, enx, eny, offsetL, offsetR]
 
     _ -> error "currently, we do not support multi-qubits operation for quantum channel. Maybe in the future"
   encoding (Gate gt qs _ _) = case qs of
     [x] -> do 
       engt <- encoding gt 
       enx  <- encoding x 
-      return [engt, enx, defaultEncode enx, -1, -1] 
-      -- [encoding_ gt, encoding_ x, defaultEncode (encoding_ x), -1]
+      return [engt, enx, -1, -1, -1] 
     [x, y] -> do 
       engt <- encoding gt 
       enx  <- encoding x 
       eny  <- encoding y 
       return [engt, enx, eny, -1, -1]
-      -- [encoding_ gt, encoding_ x, encoding_ y, -1]
     _ -> error "value error"
     
 

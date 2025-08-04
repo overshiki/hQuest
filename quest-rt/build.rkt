@@ -106,10 +106,10 @@
     )
   )
 
-  (if is-builtin
-    (builtin)
-    '()
-  )
+  ; (if is-builtin
+  ;   (builtin)
+  ;   '()
+  ; )
   (singleton)
   ; (excutable)
 )

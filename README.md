@@ -2,9 +2,9 @@
 ## Introduction
 `hQuest` is a simulation tool for quantum computation development in `Haskell`, using [QuEST](https://github.com/QuEST-Kit/QuEST/tree/main) as its backend
 
-`hQuest` is a very thin layer of wrapper using runtime idea. Specifically, we wrote a simple `cpp` script to build a `runtime` using `QuEST`, the `runtime` recieves sequences of quantum instructions(such as QCIS) as input, perform simulation using `QuEST` and output the results. We then `FFI` the interface of the `runtime`(as a shared library) into `Haskell`, with a simple `parser` to parse the txt file(for example, ./data/example.qcis) and then pass the resulting bytecode into `runtime`.
+`hQuest` is a very thin layer of wrapper using runtime idea. Specifically, we wrote a simple `cpp` script to build a `runtime` using `QuEST`, the `runtime` receives sequences of quantum instructions(such as QCIS) as input, perform simulation using `QuEST` and output the results. We then `FFI` the interface of the `runtime`(as a shared library) into `Haskell`, with a simple `parser` to parse the txt file(for example, ./data/example.qcis) and then pass the resulting bytecode into `runtime`.
 
-### dependency
+### Dependency
 we need `haskell`, the `dev` environment can be obtained easily following the guidance of [ghcup](https://www.haskell.org/ghcup/)
 
 we also need g++ (version 11) installed 
@@ -36,9 +36,9 @@ where
 
 ## QCIS format
 ### file format
-`QCIS` file should be surfixed with `.qcis`
+`QCIS` file should be suffixed with `.qcis`
 
-### QAgent 
+### Qagent 
 `QCIS` is a hardware level description language(or so-called quantum assembly language), thus it contains `QAgent` instead of `Qubit`.
 
 `QAgent` could be `Qubit`(data qubit), `Coupler`, `Readout`. For `hQuest`, we only need `Qubit` and `Coupler`.
@@ -56,7 +56,7 @@ M Q03 Q04
 ```
 
 ## QCIS extension
-to support more complex behaviour of quantum simulator backend(such as hQuest), we need some extension to `QCIS` format.
+to support more complex behavior of quantum simulator backend(such as hQuest), we need some extension to `QCIS` format.
 
 - `defkraus` is used to declare a kraus operator, and bind it to a name
 ```
@@ -70,7 +70,7 @@ defkraus K2 2x2 [[0+0j, 0.7071067811865476+0j], [0.7071067811865476+0j, 0+0j]]
 Kraus Q01 K1 K2
 ```
 
-## comment block 
+## Comment block 
 to comment out code block in `.qcis` file, use `\\` for single line and `(**)` for multiple lines.
 
 example:

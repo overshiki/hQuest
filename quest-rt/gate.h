@@ -181,11 +181,24 @@ void czgate(Qureg qureg, int target, int target2) {
   applyCompMatr2(qureg, target, target2, matrix);
 }
 
-void kraus(Qureg qureg, int target, int nQb, int *channelIndices, int offsetL, int offsetR, double* krausVec) {
+int findOffset(int* dims, int offset) {
+    if (offset == 0) {
+      return offset;
+    } else {
+      int acc = 0;
+      for (int i=0; i++; i<offset) {
+          int dim = dims[i];
+          acc += dim * dim * 2;
+      }
+      return acc;
+    }
+}
+
+void kraus(Qureg qureg, int target, int target2, int nQb, int* dims, int *channelIndices, int offsetL, int offsetR, double* krausVec) {
     // currently, we assume nQb should always be 1
 
     int nOps = offsetR - offsetL;
-    if (nQb != 1)
+    if ((nQb != 1) && (nQb != 2))
       throw std::runtime_error("An inner runtime error: currently nQb should be 1\n");
     // 3D nested pointers
     int dim = 1 << nQb;
@@ -194,7 +207,8 @@ void kraus(Qureg qureg, int target, int nQb, int *channelIndices, int offsetL, i
     for (int n=0; n<nOps; n++) {
         // current index machanism require all kraus operator have the same dim
         // TODO: support multiple dimensions
-        offset = channelIndices[offsetL + n] * dim * dim * 2;
+        // offset = channelIndices[offsetL + n] * dim * dim * 2;
+        offset = findOffset(dims, channelIndices[offsetL + n]);
         ptrs[n] = (qcomp**) malloc(dim * sizeof **ptrs);
         for (int i=0; i<dim; i++) {
             ptrs[n][i] = (qcomp*) malloc(dim * sizeof ***ptrs);
@@ -204,13 +218,19 @@ void kraus(Qureg qureg, int target, int nQb, int *channelIndices, int offsetL, i
                 qreal ig = krausVec[offset];
                 offset += 1;
                 ptrs[n][i][j] = rl + ig * 1i;
+                // std::cout << "n i j: " << n << " " << i << " " << j << "\n";
+                // std::cout << "coeffs: " << ptrs[n][i][j] << "\n";
             }
         }
     }
     KrausMap c = createKrausMap(nQb, nOps);
     setKrausMap(c, ptrs);
-
-    int victims[] = {target};
+    int victims[] = {};
+    if (nQb == 1) {
+      int victims[] = {target};
+    } else if (nQb == 2) {
+      int victims[] = {target, target2};
+    }
     mixKrausMap(qureg, victims, nQb, c);
 }
 
