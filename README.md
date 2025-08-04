@@ -22,7 +22,7 @@ git submodule update --init --recursive
 
 then
 ```
-cd quest-rt && racket build.rkt
+cd quest-rt && racket build.rkt && cd -
 ```
 
 ### to test
