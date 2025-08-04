@@ -9,7 +9,7 @@ we need `haskell`, the `dev` environment can be obtained easily following the gu
 
 we also need g++ (version 11) installed 
 
-the build script is in `racket`, could be easily installed in ubuntu though `apt-get`:
+the build script is in [racket](https://racket-lang.org/)(you do not need to learn it, you can just use the build script as a command-line tool), which could be easily installed in ubuntu though `apt-get`:
 ```bash
 sudo apt-get install racket
 ```
