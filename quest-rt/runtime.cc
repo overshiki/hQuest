@@ -33,7 +33,7 @@ int prog(int numQubits, int prog_length, int* ps, double* ts, int* measures) {
   int measure_count = 0;
 
   for (int i=0; i<prog_length; i++) {
-    int index = i * 3;
+    int index = i * 5;
     GTy gt = static_cast<GTy>(ps[index]);
     int target = ps[index + 1];
     if (gt == X) {

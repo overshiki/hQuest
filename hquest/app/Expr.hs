@@ -1,10 +1,40 @@
 {-# LANGUAGE TypeFamilies #-}
 module Expr where
 import qualified Data.List as L
+import qualified Data.HashMap.Strict as HS
+import Data.Maybe
+import Control.Monad.State.Lazy
+import GHC.Float (float2Double)
+-- import System.IO.Unsafe
+
+type Env = HS.HashMap String KrausOp
+
+type IndexedEnv = HS.HashMap String Int
+
+getIndexedEnv :: Env -> IndexedEnv
+getIndexedEnv d = HS.fromList (zip ks [0 .. ]) 
+  where 
+    ks = L.sort $ HS.keys d
+
+flattenEnv :: (Env, IndexedEnv) -> [Double]
+flattenEnv (env, indexenv) = vs
+  where 
+    revIndexedEnv = HS.fromList $ map (\(s, i) -> (i, s)) $ HS.toList indexenv
+    nKraus = L.length $ HS.keys revIndexedEnv
+    vs = concatMap 
+      (\i -> 
+        let s = fromJust $ HS.lookup i revIndexedEnv in 
+        let (KrausOp _ ds) = fromJust $ HS.lookup s env in
+        concatMap (\(Complex (x, y)) -> [x, y]) $ concat ds
+      ) 
+      $ [0 .. nKraus - 1]
+
+-- [Int] represents the second jump table for kraus operators
+type EnvState = State (Env, IndexedEnv, [Int])
 
 class HasEncode a where
   type En a
-  encoding :: a -> En a
+  encoding :: a -> EnvState (En a)
 
 data GateTy =
   CZ
@@ -23,7 +53,7 @@ gateTyList = [CZ ..]
 
 instance HasEncode GateTy where
   type En GateTy = Int
-  encoding gt = case gt of
+  encoding gt = return $ case gt of
     X   -> 0
     Y   -> 1
     X2P -> 2
@@ -54,9 +84,9 @@ q2int (Q i) = i
 
 instance HasEncode Q where
   type En Q = Int
-  encoding (Q i) = i
+  encoding (Q i) = return i
 
-newtype Complex = Complex (Float, Float)
+newtype Complex = Complex (Double, Double)
   deriving (Eq, Show)
 
 -- KrausOp ndim data
@@ -66,19 +96,66 @@ data KrausOp = KrausOp Int [[Complex]]
 data Gate = Gate GateTy [Q] [Double] [String]
   deriving (Show)
 
+defaultEncode :: Int -> Int 
+defaultEncode exclude = if exclude == 0 
+  then 1 
+  else exclude - 1
+
 instance HasEncode Gate where
   type En Gate = [Int]
+  encoding (Gate Kraus qs _ ps) = case qs of 
+    -- we need two-level jump table for this encoding
+    -- mainly, the final index represents the position in the indices of EnvState(these indices represents the indices for Env)
+    -- currently only support one-qubit operation
+    -- TODO: support multi-qubits operation
+    [x] -> do
+      (env, indexenv, indices) <- get
+      let 
+        channelIndices = map (\p -> fromJust $ HS.lookup p indexenv) ps
+        offsetL = L.length indices
+        nindices = indices ++ channelIndices
+        offsetR = L.length nindices
+        -- offsetR = unsafePerformIO (do 
+        --   { print "offsetL: "
+        --   ; print offsetL
+        --   ; print "offsetR: "
+        --   ; print offsetR'
+        --   ; print "indices: "
+        --   ; print indices
+        --   ; print "nindices: "
+        --   ; print nindices
+        --   ; print "channelIndices: "
+        --   ; print channelIndices
+        --   ; return offsetR'})
+
+      put (env, indexenv, nindices)
+
+      engt <- encoding Kraus 
+      enx  <- encoding x 
+      return [engt, enx, defaultEncode enx, offsetL, offsetR]
+
+    _ -> error "currently, we do not support multi-qubits operation for quantum channel. Maybe in the future"
   encoding (Gate gt qs _ _) = case qs of
-    [x]    -> [encoding gt, encoding x, 0]
-    [x, y] -> [encoding gt, encoding x, encoding y]
+    [x] -> do 
+      engt <- encoding gt 
+      enx  <- encoding x 
+      return [engt, enx, defaultEncode enx, -1, -1] 
+      -- [encoding_ gt, encoding_ x, defaultEncode (encoding_ x), -1]
+    [x, y] -> do 
+      engt <- encoding gt 
+      enx  <- encoding x 
+      eny  <- encoding y 
+      return [engt, enx, eny, -1, -1]
+      -- [encoding_ gt, encoding_ x, encoding_ y, -1]
     _ -> error "value error"
+    
 
 newtype Circuit = Circuit [Gate]
   deriving (Show)
 
 instance HasEncode Circuit where 
   type En Circuit = [Int]
-  encoding (Circuit gs) = concatMap encoding gs
+  encoding (Circuit gs) = concat <$> mapM encoding gs
 
 collectThetas :: Circuit -> [Double]
 collectThetas (Circuit ((Gate _ _ ds _):gs)) = ds ++ collectThetas (Circuit gs)

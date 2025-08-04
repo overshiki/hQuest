@@ -20,8 +20,6 @@ import GHC.Float (float2Double)
 import Control.Monad
 import Expr
 
-type Env = HS.HashMap String KrausOp
-
 -- type Parser = Parsec Void String
 type Parser = ParsecT Void String (State Env)
 
@@ -62,7 +60,8 @@ parseFloat :: Parser Float
 parseFloat = lexeme $ L.signed sc L.float
 
 parseDouble :: Parser Double
-parseDouble = float2Double <$> parseFloat
+parseDouble = lexeme $ L.signed sc L.float
+-- parseDouble = float2Double <$> parseFloat
 
 parseVar :: Parser String
 parseVar = do

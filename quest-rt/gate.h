@@ -181,34 +181,75 @@ void czgate(Qureg qureg, int target, int target2) {
   applyCompMatr2(qureg, target, target2, matrix);
 }
 
-void kraus(Qureg qureg, int target) {
+void kraus(Qureg qureg, int target, int nQb, int *channelIndices, int offsetL, int offsetR, double* krausVec) {
+    // currently, we assume nQb should always be 1
+    // gOffset is our pivot for kraus coefficient
+
     // KrausMap a = createKrausMap(1, 3);
     // setInlineKrausMap(a, 1, 3, {
     //     {{1,2_i},{3,4}},
     //     {{5,5},{6_i,6}},
     //     {{1_i,2_i},{-3_i,-4_i}}
     // });
-    int numTargets = 1;
-    int numOperators = 4;
-    qreal p = 0.1;
-    qreal l = 0.3;
-    KrausMap map = createInlineKrausMap(numTargets, numOperators, {
-        {
-            {sqrt(p), 0},
-            {0, sqrt(p*(1-l))}
-        }, {
-            {0, sqrt(p*l)}, 
-            {0, 0}
-        }, {
-            {sqrt((1-p)*(1-l)), 0},
-            {0, sqrt(1-p)}
-        }, {
-            {0, 0},
-            {sqrt((1-p)*l), 0}
+    // int numTargets = 1;
+    // int numOperators = 4;
+    // qreal p = 0.1;
+    // qreal l = 0.3;
+    // KrausMap map = createInlineKrausMap(numTargets, numOperators, {
+    //     {
+    //         {sqrt(p), 0},
+    //         {0, sqrt(p*(1-l))}
+    //     }, {
+    //         {0, sqrt(p*l)}, 
+    //         {0, 0}
+    //     }, {
+    //         {sqrt((1-p)*(1-l)), 0},
+    //         {0, sqrt(1-p)}
+    //     }, {
+    //         {0, 0},
+    //         {sqrt((1-p)*l), 0}
+    //     }
+    // });
+    int nOps = offsetR - offsetL;
+    // std::cout << "\n";
+    // std::cout << "target: " << target << "\n";
+    // std::cout << "offsetR: " << offsetR << "\n";
+    // std::cout << "offsetL: " << offsetL << "\n";
+    // std::cout << "nOps: " << nOps << "\n";
+    if (nQb != 1)
+      throw std::runtime_error("An inner runtime error: currently nQb should be 1\n");
+    // 3D nested pointers
+    int dim = 1 << nQb;
+    int offset;
+    qcomp*** ptrs = (qcomp***) malloc(nOps * sizeof *ptrs);
+    for (int n=0; n<nOps; n++) {
+        // current index machanism require all kraus operator have the same dim
+        // TODO: support multiple dimensions
+        offset = channelIndices[offsetL + n] * dim * dim * 2;
+        // std::cout << "offset: " << offset << "\n";
+        ptrs[n] = (qcomp**) malloc(dim * sizeof **ptrs);
+        for (int i=0; i<dim; i++) {
+            ptrs[n][i] = (qcomp*) malloc(dim * sizeof ***ptrs);
+            for (int j=0; j<dim; j++) {
+                qreal rl = krausVec[offset];
+                offset += 1;
+                qreal ig = krausVec[offset];
+                offset += 1;
+                // if (std::abs(std::sqrt(0.5) - rl) < 1e-7) {
+                //   rl = std::sqrt(0.5);
+                // }
+                ptrs[n][i][j] = rl + ig * 1i;
+                // std::cout << "n i j: " << n << " " << i << " " << j << "\n";
+                // std::cout << "coeffs: " << ptrs[n][i][j] << "\n";
+                // std::cout << "should be: " << (std::sqrt(0.5) - rl) << "\n";
+            }
         }
-    });
+    }
+    KrausMap c = createKrausMap(nQb, nOps);
+    setKrausMap(c, ptrs);
+
     int victims[] = {target};
-    mixKrausMap(qureg, victims, 1, map);
+    mixKrausMap(qureg, victims, nQb, c);
 }
 
 int measure(Qureg qureg, int target) {

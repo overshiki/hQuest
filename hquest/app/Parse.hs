@@ -39,25 +39,25 @@ parseGateHd =
   try (Gty <$> parseGateTy)
   <|> (lstring "defkraus" >> return DefKraus)
 
-data Ind = PI Int | PF Float
+data Ind = PI Int | PD Double
   deriving (Eq, Show)
 
 parseInd :: Parser Ind
-parseInd = try (PF <$> parseFloat)
+parseInd = try (PD <$> parseDouble)
   <|> (PI <$> parseInt)
 
-forceParseFloat :: Parser Float
-forceParseFloat = do
+forceParseDouble :: Parser Double
+forceParseDouble = do
   d <- parseInd
   case d of
-    PF f -> return f
+    PD f -> return f
     PI i -> return $ fromIntegral i
 
 parseComplex :: Parser Complex
 parseComplex = do
-  r <- forceParseFloat
+  r <- forceParseDouble
   lstring "+"
-  i <- forceParseFloat
+  i <- forceParseDouble
   lstring "j"
   return $ Complex (r, i)
 

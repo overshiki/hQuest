@@ -21,7 +21,7 @@
 
 extern "C" {
 
-int dmProg(int numQubits, int prog_length, int* ps, double* ts, int* measures) {
+int dmProg(int numQubits, int prog_length, int* ps, double* ts, int* measures, int* channelIndices, double* krausVec) {
   initQuESTEnv();
   // reportQuESTEnv();
 
@@ -30,7 +30,7 @@ int dmProg(int numQubits, int prog_length, int* ps, double* ts, int* measures) {
   int measure_count = 0;
 
   for (int i=0; i<prog_length; i++) {
-    int index = i * 3;
+    int index = i * 5;
     GTy gt = static_cast<GTy>(ps[index]);
     int target = ps[index + 1];
     if (gt == X) {
@@ -75,7 +75,11 @@ int dmProg(int numQubits, int prog_length, int* ps, double* ts, int* measures) {
       measures[measure_count] = ret; 
       measure_count += 1;
     } else if (gt == Kraus) {
-      kraus(qureg, target);
+      int offsetL = ps[index+3];
+      int offsetR = ps[index+4];
+      int nQb = 1;
+      // std::cout << "kraus";
+      kraus(qureg, target, nQb, channelIndices, offsetL, offsetR, krausVec);
     } else {
       std::cout << "error\n";
     }
@@ -90,50 +94,50 @@ int dmProg(int numQubits, int prog_length, int* ps, double* ts, int* measures) {
 
 }
 
-int main(void) {
+// int main(void) {
 
-  // int const prog_length = 3;
-  // int ps[prog_length * 3] = {0, 1, 0, 0, 2, 0, 15, 1, 0};
-  // int numQubits = 3;
+//   // int const prog_length = 3;
+//   // int ps[prog_length * 3] = {0, 1, 0, 0, 2, 0, 15, 1, 0};
+//   // int numQubits = 3;
 
-  std::ifstream file; 
-  std::string content;
-  file.open("circuit.byte");
-  // std::cout << "open the file" << "\n";
-  file >> content; 
-  int const prog_length = std::stoi( content );
-  file >> content;
-  int numQubits = std::stoi( content );
-  file >> content;
-  int const num_measure = std::stoi( content );
-  // gt, target, target2, gt, target ...
-  int ps[prog_length * 3];
-  int measures[num_measure];
-  std::cout << "prog_length: " << prog_length << "\n";
-  std::cout << "numQubits: " << numQubits << "\n";
-  std::cout << "num_measure: " << num_measure << "\n";
+//   std::ifstream file; 
+//   std::string content;
+//   file.open("circuit.byte");
+//   // std::cout << "open the file" << "\n";
+//   file >> content; 
+//   int const prog_length = std::stoi( content );
+//   file >> content;
+//   int numQubits = std::stoi( content );
+//   file >> content;
+//   int const num_measure = std::stoi( content );
+//   // gt, target, target2, gt, target ...
+//   int ps[prog_length * 3];
+//   int measures[num_measure];
+//   std::cout << "prog_length: " << prog_length << "\n";
+//   std::cout << "numQubits: " << numQubits << "\n";
+//   std::cout << "num_measure: " << num_measure << "\n";
 
-  int count = 0;
-  while ( file ) {                // always check whether the file is open
-    file >> content;              // pipe file's content into stream
-    ps[count] = std::stoi( content );
-    // std::cout << ps[count] << "\n"; // pipe stream's content to standard output
-    count += 1;
-  }
-  file.close();
+//   int count = 0;
+//   while ( file ) {                // always check whether the file is open
+//     file >> content;              // pipe file's content into stream
+//     ps[count] = std::stoi( content );
+//     // std::cout << ps[count] << "\n"; // pipe stream's content to standard output
+//     count += 1;
+//   }
+//   file.close();
 
-  double ts[1] = {0.0};
-  dmProg(numQubits, prog_length, ps, ts, measures);
+//   double ts[1] = {0.0};
+//   dmProg(numQubits, prog_length, ps, ts, measures);
 
-  std::ofstream ofile;
-  ofile.open("measure.byte");
+//   std::ofstream ofile;
+//   ofile.open("measure.byte");
 
-  for (int i=0; i<num_measure; i++){
-    std::cout << "measure: " << measures[i] << "\n";
-    content = std::to_string(measures[i]);
-    ofile << content;
-  }
-  ofile.close();
+//   for (int i=0; i<num_measure; i++){
+//     std::cout << "measure: " << measures[i] << "\n";
+//     content = std::to_string(measures[i]);
+//     ofile << content;
+//   }
+//   ofile.close();
 
-  printf("main prog done");
-}
+//   printf("main prog done");
+// }
