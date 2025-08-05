@@ -1,3 +1,6 @@
 [submodule "QuEST"]
 	path = QuEST
 	url = https://github.com/QuEST-Kit/QuEST.git
+[submodule "stim-parser"]
+	path = stim-parser
+	url = https://github.com/overshiki/stim-parser.git
