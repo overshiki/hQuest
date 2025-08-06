@@ -2,14 +2,14 @@
 ## Introduction
 `hQuest` is a simulation tool for quantum computation development in `Haskell`, using [QuEST](https://github.com/QuEST-Kit/QuEST/tree/main) as its backend
 
-`hQuest` is a very thin layer of wrapper using runtime idea. Specifically, we wrote a simple `cpp` script to build a `runtime` using `QuEST`, the `runtime` receives sequences of quantum instructions(such as QCIS) as input, perform simulation using `QuEST` and output the results. We then `FFI` the interface of the `runtime`(as a shared library) into `Haskell`, with a simple `parser` to parse the txt file(for example, ./data/example.qcis) and then pass the resulting bytecode into `runtime`.
+`hQuest` is a very thin layer of wrapper using runtime idea. Specifically, we wrote a simple `cpp` script to build a `runtime` using `QuEST`, the `runtime` receives sequences of quantum instructions(in `bytecode`) as input, perform simulation using `QuEST` and output the results. We then `FFI` the interface of the `runtime`(as a shared library) into `Haskell`, with a simple `parser` to parse the `txt` file(for example, `./data/example.qcis`) and then pass the resulting `bytecode` into `runtime`.
 
 ### Dependency
 we need `haskell` together with its building system `cabal`, both can be obtained easily following the guidance of [ghcup](https://www.haskell.org/ghcup/)
 
 we also need g++ (>= 9.4.0) installed 
 
-the build script is written in [racket](https://racket-lang.org/), a dialect of `lisp`(you do not need to learn it, you can just use the build script as a command-line tool), which could be easily installed in ubuntu through `apt-get`:
+the build script is written in [racket](https://racket-lang.org/), a dialect of `lisp`(you do not need to learn it, you can just use the build script as a command-line tool), which could be easily installed in `ubuntu` through `apt-get`:
 ```bash
 sudo apt-get install racket
 ```
