@@ -5,11 +5,11 @@
 `hQuest` is a very thin layer of wrapper using runtime idea. Specifically, we wrote a simple `cpp` script to build a `runtime` using `QuEST`, the `runtime` receives sequences of quantum instructions(such as QCIS) as input, perform simulation using `QuEST` and output the results. We then `FFI` the interface of the `runtime`(as a shared library) into `Haskell`, with a simple `parser` to parse the txt file(for example, ./data/example.qcis) and then pass the resulting bytecode into `runtime`.
 
 ### Dependency
-we need `haskell`, the `dev` environment can be obtained easily following the guidance of [ghcup](https://www.haskell.org/ghcup/)
+we need `haskell` together with its building system `cabal`, both can be obtained easily following the guidance of [ghcup](https://www.haskell.org/ghcup/)
 
-we also need g++ (version 11) installed 
+we also need g++ (>= 9.4.0) installed 
 
-the build script is in [racket](https://racket-lang.org/)(you do not need to learn it, you can just use the build script as a command-line tool), which could be easily installed in ubuntu though `apt-get`:
+the build script is written in [racket](https://racket-lang.org/), a dialect of `lisp`(you do not need to learn it, you can just use the build script as a command-line tool), which could be easily installed in ubuntu through `apt-get`:
 ```bash
 sudo apt-get install racket
 ```
@@ -21,9 +21,16 @@ git submodule update --init --recursive
 ```
 
 then
+
+- build with multicore cpus
 ```
 cd quest-rt && racket build.rkt && cd -
 ```
+- build with `cuda` support 
+```
+cd quest-rt && racket build.rkt --cuda && cd -
+```
+
 
 ### to test
 just run 
@@ -38,10 +45,10 @@ where
 ### file format
 `QCIS` file should be suffixed with `.qcis`
 
-### Qagent 
+### QAgent 
 `QCIS` is a hardware level description language(or so-called quantum assembly language), thus it contains `QAgent` instead of `Qubit`.
 
-`QAgent` could be `Qubit`(data qubit), `Coupler`, `Readout`. For `hQuest`, we only need `Qubit` and `Coupler`.
+`QAgent` could be `Qubit`(data qubit), `Coupler`, `Readout`, `Amplifier` et al. For `hQuest`, we only need `Qubit` and `Coupler`.
 
 ### Gate
 `Gate` follows the format 
@@ -54,6 +61,11 @@ XY Q02 0.5
 M Q02
 M Q03 Q04
 ```
+where 
+- `Qubit` starts with `Q`
+- `Coupler` starts with `G`
+- `Readout` starts with `R`
+- `Amplifier` starts with `A`
 
 ## QCIS extension
 to support more complex behavior of quantum simulator backend(such as hQuest), we need some extension to `QCIS` format.

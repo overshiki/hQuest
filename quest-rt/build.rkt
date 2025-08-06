@@ -1,5 +1,19 @@
 #lang racket 
 (require racket/match)
+(require racket/cmdline)
+
+(define args (vector->list (current-command-line-arguments)))
+(define is-cuda 
+  (match args 
+    ('() #f)
+    ((cons arg y)
+      (if (equal? arg "--cuda")
+        #t 
+        #f
+      )
+    )
+  )
+)
 
 (define (previous-path path)
   ; or using match-let
@@ -7,14 +21,29 @@
   dbase
 )
 
-(define (compile path file target is-builtin)
+(define (compile path file target is-builtin is-cuda)
   (define (sys command)
     (display command)
     (display "\n")
     (system command)
   )
+  (define cuda-tag " -D ENABLE_CUDA=ON -D CMAKE_CUDA_ARCHITECTURES=86")
   (define (cp-to-build path) (string-append "cp " path " ./build"))
-  (define (build file) (string-append "cd build && cmake ../../QuEST -D USER_SOURCE=" file " -D OUTPUT_EXE=runtime"))
+  (define (build file) 
+    (if is-cuda
+      ; then 
+      (string-append 
+        "cd build && cmake ../../QuEST"
+        cuda-tag
+        " -D USER_SOURCE=" file 
+        " -D OUTPUT_EXE=runtime")
+      ; else
+      (string-append 
+        "cd build && cmake ../../QuEST"
+        " -D USER_SOURCE=" file 
+        " -D OUTPUT_EXE=runtime")
+    )
+  )
 
   (define (builtin)
     (if (directory-exists? "build")
@@ -106,10 +135,10 @@
     )
   )
 
-  ; (if is-builtin
-  ;   (builtin)
-  ;   '()
-  ; )
+  (if is-builtin
+    (builtin)
+    '()
+  )
   (singleton)
   ; (excutable)
 )
@@ -120,7 +149,7 @@
     (file "density_matrix_runtime.cc")
     (target "libqrunDM.so")
   )
-  (compile path file target #t)
+  (compile path file target #t is-cuda)
 )
 
 (let 
@@ -129,5 +158,5 @@
     (file "runtime.cc")
     (target "libqrun.so")
   )
-  (compile path file target #f)
+  (compile path file target #f is-cuda)
 )
