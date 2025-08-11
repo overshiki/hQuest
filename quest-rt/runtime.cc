@@ -25,8 +25,17 @@ extern "C" {
 
 
 int prog(int numQubits, int prog_length, int* ps, double* ts, int* measures) {
-  initQuESTEnv();
-  // reportQuESTEnv();
+  // initQuESTEnv();
+  int useMPI = 0;
+  int useOMP = 1;
+  // int useGPU = 0;
+#ifdef USE_CUDA
+  int useGPU = 1;
+#else 
+  int useGPU = 0;
+#endif
+  initCustomQuESTEnv(useMPI, useGPU, useOMP);
+  reportQuESTEnv();
 
   Qureg qureg = createForcedQureg(numQubits);
   int theta_count = 0;

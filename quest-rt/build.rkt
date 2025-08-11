@@ -90,18 +90,35 @@
   (define (singleton)
     (sys (cp-to-build path))
     (sys 
-      (string-append
-        ; "cd build && g++ runtime.cc -lQuEST -lm "
-        "cd build && g++ "
-        file
-        " -lQuEST -lm -fPIC -shared -DSINGLETON "
-        (lib-tag)
-        " "
-        (include-tag)
-        " "
-        ; "-o runtime"
-        "-o "
-        target
+      (if is-cuda
+        ; then
+        (string-append
+          ; "cd build && g++ runtime.cc -lQuEST -lm "
+          "cd build && g++ "
+          file
+          " -lQuEST -lm -fPIC -shared -DSINGLETON -DUSE_CUDA "
+          (lib-tag)
+          " "
+          (include-tag)
+          " "
+          ; "-o runtime"
+          "-o "
+          target
+        )
+        ; else      
+        (string-append
+          ; "cd build && g++ runtime.cc -lQuEST -lm "
+          "cd build && g++ "
+          file
+          " -lQuEST -lm -fPIC -shared -DSINGLETON "
+          (lib-tag)
+          " "
+          (include-tag)
+          " "
+          ; "-o runtime"
+          "-o "
+          target
+        )
       )
     )
     (if (directory-exists? "../hquest/lib")
@@ -109,11 +126,12 @@
       (sys "mkdir -p ../hquest/lib")
     )
     (sys "cp build/libQuEST.so ../hquest/lib/")
-    (sys (string-append
-      "cp "
-      "build/"
-      target
-      " ../hquest/lib/"))
+    (sys 
+      (string-append
+        "cp "
+        "build/"
+        target
+        " ../hquest/lib/"))
     ;;; (sys "LD_LIBRARY_PATH=\"./build\" && ./build/runtime")
   )
 

@@ -22,8 +22,16 @@
 extern "C" {
 
 int dmProg(int numQubits, int prog_length, int* ps, double* ts, int* measures, int* dims, int* channelIndicesQ1, int* channelIndicesQ2, double* krausVec) {
-  initQuESTEnv();
-  // reportQuESTEnv();
+  // initQuESTEnv();
+  int useMPI = 0;
+  int useOMP = 1;
+#ifdef USE_CUDA
+  int useGPU = 1;
+#else 
+  int useGPU = 0;
+#endif
+  initCustomQuESTEnv(useMPI, useGPU, useOMP);
+  reportQuESTEnv();
 
   Qureg qureg = createDensityQureg(numQubits);
   int theta_count = 0;
