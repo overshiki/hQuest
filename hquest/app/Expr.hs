@@ -34,7 +34,7 @@ flattenEnv (env, indexenv) = (vs, dims)
     vs = concat vs_
 
 -- Env, IndexedEnv, jump indices for 1q kraus, jump indices for 2q kraus
-type EnvState = State (Env, IndexedEnv, [Int], [Int])
+type EnvState = State (Env, IndexedEnv, [Int])
 
 class HasEncode a where
   type En a
@@ -102,41 +102,56 @@ data Gate = Gate GateTy [Q] [Double] [String]
 
 instance HasEncode Gate where
   type En Gate = [Int]
-  encoding (Gate Kraus qs _ ps) = case qs of 
-    -- we need two-level jump table for this encoding
-    -- mainly, the final index represents the position in the indices of EnvState(these indices represents the indices for Env)
-    -- currently only support one-qubit operation
-    -- TODO: support multi-qubits operation
-    [x] -> do
-      (env, indexenv, indices1q, indices2q) <- get
-      let 
-        channelIndices = map (\p -> fromJust $ HS.lookup p indexenv) ps
-        offsetL = L.length indices1q
-        nindices1q = indices1q ++ channelIndices
-        offsetR = L.length nindices1q
+  encoding (Gate Kraus qs _ ps) = 
+    let 
+      envFunc :: [String] -> EnvState (Int, Int)
+      envFunc ps = do 
+        (env, indexenv, indices) <- get
+        let 
+          channelIndices = map (\p -> fromJust $ HS.lookup p indexenv) ps
+          offsetL = L.length indices
+          nindices = indices ++ channelIndices
+          offsetR = L.length nindices
+        put (env, indexenv, nindices)
+        return (offsetL, offsetR)
+    in 
+    case qs of 
+      -- we need two-level jump table for this encoding
+      -- mainly, the final index represents the position in the indices of EnvState(these indices represents the indices for Env)
+      -- currently only support one-qubit operation
+      -- TODO: support multi-qubits operation
+      [x] -> do
+        -- (env, indexenv, indices1q, indices2q) <- get
+        -- let 
+        --   channelIndices = map (\p -> fromJust $ HS.lookup p indexenv) ps
+        --   offsetL = L.length indices1q
+        --   nindices1q = indices1q ++ channelIndices
+        --   offsetR = L.length nindices1q
 
-      put (env, indexenv, nindices1q, indices2q)
+        -- put (env, indexenv, nindices1q, indices2q)
+        (offsetL, offsetR) <- envFunc ps
 
-      engt <- encoding Kraus 
-      enx  <- encoding x 
-      return [engt, enx, -1, offsetL, offsetR]
+        engt <- encoding Kraus 
+        enx  <- encoding x 
+        return [engt, enx, -1, offsetL, offsetR]
 
-    [x, y] -> do
-      (env, indexenv, indices1q, indices2q) <- get
-      let 
-        channelIndices = map (\p -> fromJust $ HS.lookup p indexenv) ps
-        offsetL = L.length indices2q
-        nindices2q = indices2q ++ channelIndices
-        offsetR = L.length nindices2q
+      [x, y] -> do
+        -- (env, indexenv, indices1q, indices2q) <- get
+        -- let 
+        --   channelIndices = map (\p -> fromJust $ HS.lookup p indexenv) ps
+        --   offsetL = L.length indices2q
+        --   nindices2q = indices2q ++ channelIndices
+        --   offsetR = L.length nindices2q
 
-      put (env, indexenv, indices1q, nindices2q)
+        -- put (env, indexenv, indices1q, nindices2q)
+        (offsetL, offsetR) <- envFunc ps
 
-      engt <- encoding Kraus 
-      enx  <- encoding x
-      eny  <- encoding y
-      return [engt, enx, eny, offsetL, offsetR]
+        engt <- encoding Kraus 
+        enx  <- encoding x
+        eny  <- encoding y
+        return [engt, enx, eny, offsetL, offsetR]
 
-    _ -> error "currently, we do not support multi-qubits operation for quantum channel. Maybe in the future"
+      _ -> error "currently, we do not support multi-qubits operation for quantum channel. Maybe in the future"
   encoding (Gate gt qs _ _) = case qs of
     [x] -> do 
       engt <- encoding gt 

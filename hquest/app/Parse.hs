@@ -97,7 +97,7 @@ parseGate = do
       let check = all (`elem` HS.keys env) ks
       if check
         then return $ Just $ Gate Kraus qs [] ks
-        else error "kraus name not fount in env"
+        else error "kraus name not found in env"
     Gty gty -> do
       qs <- parseExhaust parseQ
       ts <- parseExhaust parseDouble

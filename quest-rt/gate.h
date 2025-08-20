@@ -199,7 +199,7 @@ void kraus(Qureg qureg, int target, int target2, int nQb, int* dims, int *channe
 
     int nOps = offsetR - offsetL;
     if ((nQb != 1) && (nQb != 2))
-      throw std::runtime_error("An inner runtime error: currently nQb should be 1\n");
+      throw std::runtime_error("hQuest, an inner runtime error: currently nQb should be 1 or 2\n");
     // 3D nested pointers
     int dim = 1 << nQb;
     int offset;

@@ -32,8 +32,7 @@ foreign import ccall "dmProg"
     -> Ptr CDouble    -- double* ts
     -> Ptr CInt       -- int* measures
     -> Ptr CInt       -- int* dims
-    -> Ptr CInt       -- int* channelIndicesQ1
-    -> Ptr CInt       -- int* channelIndicesQ2
+    -> Ptr CInt       -- int* channelIndices
     -> Ptr CDouble    -- double* krausVec
     -> IO ()
 
@@ -56,21 +55,20 @@ runCircuit c@(Circuit gs) env = do
   let
     indexedEnv = getIndexedEnv env
     (ks, dims) = flattenEnv (env, indexedEnv)
-    (ps, (_, _, channelIndices1q, channelIndices2q)) = runState (encoding c) (env, indexedEnv, [], [])
+    (ps, (_, _, channelIndices)) = runState (encoding c) (env, indexedEnv, [])
     ts = collectThetas c
     nMeasures = numMeasures c
   psPtr <- newArray $ map int2cint ps
   tsPtr <- newArray $ map CDouble ts
   nsPtr <- newArray $ replicate nMeasures (int2cint (-1))
   dimsPtr <- newArray $ map int2cint dims
-  ch1qPtr <- newArray $ map int2cint channelIndices1q
-  ch2qPtr <- newArray $ map int2cint channelIndices2q
+  chPtr <- newArray $ map int2cint channelIndices
   ksPtr <- newArray $ map CDouble ks
   let
     nqubit = int2cint $ numQubits c
     progLength = int2cint (length gs)
   if isDensityMatrix c
-    then dmProg nqubit progLength psPtr tsPtr nsPtr dimsPtr ch1qPtr ch2qPtr ksPtr
+    then dmProg nqubit progLength psPtr tsPtr nsPtr dimsPtr chPtr ksPtr
     else prog nqubit progLength psPtr tsPtr nsPtr
   ms <- peekArray nMeasures nsPtr
   -- print ms
