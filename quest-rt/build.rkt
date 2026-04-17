@@ -29,17 +29,20 @@
   )
   (define cuda-tag " -D ENABLE_CUDA=ON -D CMAKE_CUDA_ARCHITECTURES=86")
   (define (cp-to-build path) (string-append "cp " path " ./build"))
+  (define cmake-flags " -DCMAKE_SHARED_LINKER_FLAGS=\"-static-libstdc++\"")
   (define (build file) 
     (if is-cuda
       ; then 
       (string-append 
         "cd build && cmake ../../QuEST"
         cuda-tag
+        cmake-flags
         " -D USER_SOURCE=" file 
         " -D OUTPUT_EXE=runtime")
       ; else
       (string-append 
         "cd build && cmake ../../QuEST"
+        cmake-flags
         " -D USER_SOURCE=" file 
         " -D OUTPUT_EXE=runtime")
     )
@@ -96,7 +99,7 @@
           ; "cd build && g++ runtime.cc -lQuEST -lm "
           "cd build && g++ "
           file
-          " -lQuEST -lm -fPIC -shared -DSINGLETON -DUSE_CUDA "
+          " -lQuEST -lm -fPIC -shared -static-libstdc++ -Wl,-rpath,\\$ORIGIN -DSINGLETON -DUSE_CUDA "
           (lib-tag)
           " "
           (include-tag)
@@ -110,7 +113,7 @@
           ; "cd build && g++ runtime.cc -lQuEST -lm "
           "cd build && g++ "
           file
-          " -lQuEST -lm -fPIC -shared -DSINGLETON "
+          " -lQuEST -lm -fPIC -shared -static-libstdc++ -Wl,-rpath,\\$ORIGIN -DSINGLETON "
           (lib-tag)
           " "
           (include-tag)

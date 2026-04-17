@@ -73,7 +73,7 @@ executable hquest
         , mtl
         , megaparsec
         , containers
-        , stim-parser
+        , stim-parser >= 0.1.0.0
 
     -- Directories containing source files.
     hs-source-dirs:   app
